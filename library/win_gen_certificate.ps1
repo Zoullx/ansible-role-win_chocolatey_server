@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 
 $params = Parse-Args $args -supports_check_mode $true
 $check_mode = Get-AnsibleParam -obj $params -name "_ansible_check_mode" -type "bool" -default $false
+$fqdn = Get-AnsibleParam -obj $params -name "fqdn" -type "str" -default $null
 
 $result = @{
     changed = $false
@@ -17,10 +18,12 @@ $result = @{
 }
 
 $hostname = $env:COMPUTERNAME
-try {
-    $fqdn = [System.Net.Dns]::GetHostByName($hostname).Hostname
-} catch {
-    $fqdn = $hostname
+if ($fqdn -eq $null) {
+    try {
+        $fqdn = [System.Net.Dns]::GetHostByName($hostname).Hostname
+    } catch {
+        $fqdn = $hostname
+    }
 }
 $subject = "CN=$fqdn"
 

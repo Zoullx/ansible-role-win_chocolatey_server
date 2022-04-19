@@ -4,6 +4,7 @@
 
   - name: get or generate a self signed certificate for the https bindings
     win_gen_certificate:
+      fqdn: '{{ opt_chocolatey_server_fqdn }}'
     register: pri_chocolatey_server_https_certificate
 
   - name: set certificate thumbprint to out_chocolatey_server_https_certificate fact
