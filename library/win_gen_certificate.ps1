@@ -30,7 +30,7 @@ $subject = "CN=$fqdn"
 
 # TODO: should probably filter by EnhancedKeyUsageList
 $certificates = Get-ChildItem -Path Cert:\LocalMachine\My | Where-Object { $_.Subject -eq $subject }
-if ($null -ne $certificates) {
+if ($null -ne $certificates -and Get-Date -ge $certificates[0].NotAfter.AddDays(-30)) {
     # we found a cert so use the existing thumbprint
     $result.thumbprint = $certificates[0].Thumbprint
 } else {
