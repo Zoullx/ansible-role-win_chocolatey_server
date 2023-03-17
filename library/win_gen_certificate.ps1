@@ -102,4 +102,9 @@ if ($null -ne $certificates -and (Get-Date) -lt $certificates[0].NotAfter.AddDay
     $result.thumbprint = $parsed_certificate.Thumbprint
 }
 
+# remove old cert if found and expired
+if ($null -ne $certificates -and (Get-Date) -gt $certificates[0].NotAfter.AddDays(-30)) {
+    $certificates | Remove-Item
+}
+
 Exit-Json -obj $result
