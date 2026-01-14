@@ -2,33 +2,34 @@
 - name: create self signed certificate for site if no cert thumbprint was specified
   when: opt_chocolatey_server_https_certificate is not defined
   block:
+    - name: get or generate a self signed certificate for the https bindings
+      win_gen_certificate:
+        fqdn: "{{ opt_chocolatey_server_fqdn }}"
+      register: pri_chocolatey_server_https_certificate
 
-  - name: get or generate a self signed certificate for the https bindings
-    win_gen_certificate:
-      fqdn: '{{ opt_chocolatey_server_fqdn }}'
-    register: pri_chocolatey_server_https_certificate
-
-  - name: set certificate thumbprint to out_chocolatey_server_https_certificate fact
-    set_fact:
-      out_chocolatey_server_https_certificate: '{{ pri_chocolatey_server_https_certificate.thumbprint }}'
+    - name: set certificate thumbprint to out_chocolatey_server_https_certificate fact
+      set_fact:
+        out_chocolatey_server_https_certificate: "{{ pri_chocolatey_server_https_certificate.thumbprint }}"
 
 - name: setup https binding
-  win_iis_webbinding:
+  microsoft.iis.website:
     name: chocolatey_server_site
-    port: '{{ opt_chocolatey_server_https_port }}'
     state: present
-    protocol: https
-    certificate_hash: '{{ opt_chocolatey_server_https_certificate | default(out_chocolatey_server_https_certificate) }}'
-  when: not ansible_check_mode  # site won't exist yet in check mode
+    bindings:
+      set:
+        - port: "{{ opt_chocolatey_server_https_port }}"
+          protocol: https
+          certificate_hash: "{{ opt_chocolatey_server_https_certificate | default(out_chocolatey_server_https_certificate) }}"
+  when: not ansible_check_mode # site won't exist yet in check mode
 
 - name: create firewall rule for HTTPS access
   win_firewall_rule:
     name: Chocolatey Server HTTPS (In)
-    localport: '{{ opt_chocolatey_server_https_port }}'
+    localport: "{{ opt_chocolatey_server_https_port }}"
     action: allow
     direction: in
     protocol: tcp
     state: present
     enabled: true
-    profiles: '{{ opt_chocolatey_server_firewall_profiles }}'
+    profiles: "{{ opt_chocolatey_server_firewall_profiles }}"
     program: System
