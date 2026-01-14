@@ -16,7 +16,7 @@
     name: chocolatey_server_site
     state: started
     bindings:
-      set:
+      add:
         - port: "{{ opt_chocolatey_server_https_port }}"
           protocol: https
           certificate_hash: "{{ opt_chocolatey_server_https_certificate | default(out_chocolatey_server_https_certificate) }}"
