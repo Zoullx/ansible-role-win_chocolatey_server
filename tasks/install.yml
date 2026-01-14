@@ -31,13 +31,13 @@
 - name: add Server 2008 R2 specific features
   set_fact:
     pri_chocolatey_server_features: '{{ pri_chocolatey_server_features + ["Web-Asp-Net"] }}'
-    pri_chocolatey_server_site_parameters: applicationDefaults.serviceAutoStartEnabled:True
+    # pri_chocolatey_server_site_parameters: applicationDefaults.serviceAutoStartEnabled:True
   when: pri_chocolatey_server_os_version.win_file_version.product_version.startswith("6.1.")
 
 - name: add newer OS specific features
   set_fact:
     pri_chocolatey_server_features: '{{ pri_chocolatey_server_features + ["Web-Asp-Net45", "Web-AppInit"] }}'
-    pri_chocolatey_server_site_parameters: applicationDefaults.preloadEnabled:True|applicationDefaults.serviceAutoStartEnabled:True
+    # pri_chocolatey_server_site_parameters: applicationDefaults.preloadEnabled:True|applicationDefaults.serviceAutoStartEnabled:True
   when: not pri_chocolatey_server_os_version.win_file_version.product_version.startswith("6.1.")
 
 - name: add IIS basic auth feature if credentials are specified
@@ -59,6 +59,12 @@
   when:
     - pri_chocolatey_server_install is changed
     - pri_chocolatey_server_os_version.win_file_version.product_version.startswith("6.1.")
+
+- name: ensure IIS service is running and set to start automatically
+  ansible.windows.win_service:
+    name: W3SVC
+    state: started
+    start_mode: auto
 
 - name: remove the default website
   microsoft.iis.website:
@@ -102,15 +108,23 @@
     - IIS APPPOOL\chocolatey_server_app_pool
 
 - name: create Chocolatey IIS website
-  win_iis_website:
+  microsoft.iis.website:
     name: chocolatey_server_site
     state: started
     application_pool: chocolatey_server_app_pool
     physical_path: '{{ opt_chocolatey_server_path }}\chocolatey.server'
-    port: "{{ opt_chocolatey_server_http_port }}"
-    parameters: "{{ pri_chocolatey_server_site_parameters }}"
+    bindings:
+      set:
+        - port: "{{ opt_chocolatey_server_http_port }}"
+    # parameters: "{{ pri_chocolatey_server_site_parameters }}"
   notify: reload chocolatey packages
   ignore_errors: "{{ ansible_check_mode }}"
+
+- name: enable preload on the website
+  ansible.windows.win_shell: |
+    Import-Module WebAdministration
+    Set-WebConfigurationProperty -Filter 'System.ApplicationHost/Sites/Site[@name="Default Web Site"]' -Name "preloadEnabled" -Value $true -PSPath IIS:
+  when: not pri_chocolatey_server_os_version.win_file_version.product_version.startswith("6.1.")
 
 - name: create firewall rule for HTTP access
   win_firewall_rule:
