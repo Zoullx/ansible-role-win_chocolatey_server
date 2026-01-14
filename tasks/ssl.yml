@@ -14,7 +14,7 @@
 - name: setup https binding
   microsoft.iis.website:
     name: chocolatey_server_site
-    state: present
+    state: started
     bindings:
       set:
         - port: "{{ opt_chocolatey_server_https_port }}"
